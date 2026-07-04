@@ -1,0 +1,21 @@
+-- ⚠️ ARCHIVE — NE JAMAIS EXÉCUTER ⚠️
+-- Ce fichier a été renommé (.sql -> .sql.txt) car il ouvre l'accès PUBLIC
+-- (rôle anon, sans authentification) en lecture ET écriture sur la table
+-- producers : "for select/all using (true)" sans "to authenticated".
+-- Si ce script a déjà été exécuté sur la base de production, vérifiez
+-- immédiatement les policies actives dans Supabase (SQL Editor > Policies)
+-- et exécutez ../supabase_migration_lockdown_rls.sql pour les remplacer.
+-- Voir l'audit de sécurité (Conclusion #2). Conservé ici à titre d'historique.
+
+-- 1. Autoriser l'accès anonyme (temporaire pour la phase de test sans authentification)
+drop policy if exists "Les producteurs sont visibles par tous les authentifiés" on producers;
+drop policy if exists "Les producteurs sont modifiables par tous les authentifiés" on producers;
+
+create policy "Accès public en lecture (TEMPORAIRE)" on producers for select using (true);
+create policy "Accès public en écriture (TEMPORAIRE)" on producers for all using (true);
+
+-- 2. Insérer quelques données de test pour ne pas avoir un tableau vide !
+INSERT INTO public.producers (first_name, last_name, village, cooperative, phone, area_ha, status) VALUES 
+('Jean', 'Dupont', 'Village A', 'Coopérative Alpha', '+22601020304', 2.5, 'Actif'),
+('Awa', 'Traoré', 'Village B', 'Coopérative Alpha', '+22605060708', 4.0, 'Actif'),
+('Paul', 'Kaboré', 'Village A', 'Coopérative Beta', '+22611223344', 1.5, 'Suspendu');
