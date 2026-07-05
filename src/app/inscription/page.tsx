@@ -60,6 +60,7 @@ export default function InscriptionPage() {
   const hasUppercase = /[A-Z]/.test(formData.password);
   const hasNumber = /[0-9]/.test(formData.password);
   const passwordsMatch = formData.password === formData.confirmPassword && formData.password !== "";
+  const isFormValid = hasMinLength && hasUppercase && hasNumber && passwordsMatch && formData.cgu && formData.privacy;
   
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault(); // Utilise la validation HTML5 du form courant
@@ -327,14 +328,28 @@ export default function InscriptionPage() {
                 </label>
               </div>
  
+              {!isFormValid && (formData.password !== "" || formData.confirmPassword !== "" || formData.cgu || formData.privacy) && (
+                <div className="p-3.5 bg-red-50/70 dark:bg-red-950/20 border border-red-200/60 dark:border-red-900/50 rounded-xl text-xs text-red-600 dark:text-red-400 space-y-1">
+                  {(!hasMinLength || !hasUppercase || !hasNumber) && formData.password !== "" ? (
+                    <p>• Le mot de passe ne respecte pas les critères de sécurité requis.</p>
+                  ) : null}
+                  {formData.confirmPassword !== "" && !passwordsMatch ? (
+                    <p>• Les mots de passe de confirmation ne correspondent pas.</p>
+                  ) : null}
+                  {!formData.cgu || !formData.privacy ? (
+                    <p>• Vous devez cocher et accepter les Conditions d'utilisation et la Politique de confidentialité.</p>
+                  ) : null}
+                </div>
+              )}
+
               <div className="pt-6 flex gap-3">
                 <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white py-3 px-4 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="flex flex-1 justify-center items-center gap-2 rounded-xl border border-transparent bg-primary-600 py-3 px-4 text-base font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                  disabled={isLoading || !isFormValid}
+                  className="flex flex-1 justify-center items-center gap-2 rounded-xl border border-transparent bg-primary-600 py-3 px-4 text-base font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
