@@ -77,6 +77,7 @@ function ParametresContent() {
 
   // ── Equipe ──
   interface TeamMember {
+    id: string;
     initials: string;
     name: string;
     email: string;
@@ -115,6 +116,7 @@ function ParametresContent() {
                 ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800"
                 : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800";
               return {
+                id: m.id,
                 initials,
                 name: m.full_name || m.email.split("@")[0],
                 email: m.email || "",
@@ -129,6 +131,33 @@ function ParametresContent() {
     };
     fetchTeam();
   }, []);
+
+  const handleDeleteMember = async (memberId: string, memberName: string) => {
+    if (!memberId) {
+      setTeamMembers(prev => prev.filter(m => m.name !== memberName));
+      toast(`Membre ${memberName} supprimé de l'équipe.`);
+      return;
+    }
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && user.id === memberId) {
+      toast("Vous ne pouvez pas supprimer votre propre compte Administrateur.", "error");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", memberId);
+
+    if (error) {
+      console.error("Error deleting member:", error);
+      toast("Une erreur est survenue lors de la suppression.", "error");
+    } else {
+      toast(`Membre ${memberName} supprimé avec succès.`);
+      setTeamMembers(prev => prev.filter(m => m.id !== memberId));
+    }
+  };
 
   // ── Catalogue ──
   const [products, setProducts] = useState([
@@ -154,7 +183,7 @@ function ParametresContent() {
     e.preventDefault();
     const initials = newMemberData.name.substring(0, 2).toUpperCase() || "XX";
     const color = newMemberData.role === "Admin" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800" : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800";
-    setTeamMembers([...teamMembers, { ...newMemberData, initials, color }]);
+    setTeamMembers([...teamMembers, { id: "", ...newMemberData, initials, color }]);
     setIsTeamModalOpen(false);
     toast(`Membre ${newMemberData.name} ajouté à l'équipe !`);
     setNewMemberData({ name: "", email: "", role: "Agent" });
@@ -835,7 +864,17 @@ function ParametresContent() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">{member.email}</p>
                     </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full border ${member.color}`}>{member.role}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-1 text-xs rounded-full border ${member.color}`}>{member.role}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteMember(member.id, member.name)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors focus:outline-none"
+                      title="Supprimer le membre"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
