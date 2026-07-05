@@ -76,12 +76,59 @@ function ParametresContent() {
   });
 
   // ── Equipe ──
-  const [teamMembers, setTeamMembers] = useState([
-    { initials: "AG", name: "Agent Terrain 1", email: "agent@opeagri.com", role: "Agent", color: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800" },
-    { initials: "CP", name: "Coopérative Yennenga", email: "contact@yennenga.bf", role: "Coopérative", color: "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-100 dark:border-purple-800" }
-  ]);
+  interface TeamMember {
+    initials: string;
+    name: string;
+    email: string;
+    role: string;
+    color: string;
+  }
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [newMemberData, setNewMemberData] = useState({ name: "", email: "", role: "Agent" });
+
+  useEffect(() => {
+    const fetchTeam = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: myProfile } = await supabase
+          .from("profiles")
+          .select("cooperative_name")
+          .eq("id", user.id)
+          .single();
+
+        if (myProfile?.cooperative_name) {
+          const { data: members } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("cooperative_name", myProfile.cooperative_name);
+
+          if (members) {
+            const formatted = members.map((m: any) => {
+              const initials = m.full_name
+                ? m.full_name.trim().split(" ").map((p: string) => p[0]).join("").substring(0, 2).toUpperCase()
+                : m.email
+                ? m.email.substring(0, 2).toUpperCase()
+                : "AG";
+              const color = m.role === "admin"
+                ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800"
+                : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800";
+              return {
+                initials,
+                name: m.full_name || m.email.split("@")[0],
+                email: m.email || "",
+                role: m.role === "admin" ? "Admin" : "Agent",
+                color,
+              };
+            });
+            setTeamMembers(formatted);
+          }
+        }
+      }
+    };
+    fetchTeam();
+  }, []);
 
   // ── Catalogue ──
   const [products, setProducts] = useState([

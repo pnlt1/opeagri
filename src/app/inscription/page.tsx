@@ -101,7 +101,22 @@ export default function InscriptionPage() {
           : "Ce nom d'organisation est peut-être déjà utilisé, ou une erreur est survenue. Veuillez réessayer.";
       toast(`Erreur d'inscription : ${readableMessage}`, "error");
     } else {
-      toast("Compte créé ! (Vérifiez vos emails si la confirmation est activée sur Supabase)");
+      // Create public profile record
+      if (data?.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: formData.email,
+            role: 'admin',
+            full_name: formData.adminName,
+            cooperative_name: formData.orgName,
+          });
+        if (profileError) {
+          console.error("Error creating public profile:", profileError);
+        }
+      }
+      toast("Compte créé avec succès !");
       router.push("/dashboard");
     }
   };
