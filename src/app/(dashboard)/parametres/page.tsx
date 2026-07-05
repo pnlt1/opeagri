@@ -200,6 +200,9 @@ function ParametresContent() {
     phone: "",
   });
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  // L'e-mail de connexion réellement confirmé côté Supabase Auth (distinct du
+  // champ éditable du formulaire, pour détecter une demande de changement).
+  const [confirmedEmail, setConfirmedEmail] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -229,6 +232,7 @@ function ParametresContent() {
           role: profile?.role === "admin" ? "Administrateur" : "Agent",
           phone: "",
         });
+        setConfirmedEmail(user.email || "");
 
         if (profile?.cooperative_name) {
           setOrgData(prev => ({
@@ -342,13 +346,34 @@ function ParametresContent() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
+      // Si l'utilisateur a modifié son e-mail dans le formulaire, on déclenche
+      // un vrai changement d'e-mail de connexion Supabase Auth — Supabase
+      // enverra un lien de confirmation, le changement ne prend effet
+      // qu'après confirmation (traité par /auth/callback).
+      const emailChanged = profileData.email.trim() !== "" && profileData.email.trim() !== confirmedEmail;
+      if (emailChanged) {
+        const { error: emailError } = await supabase.auth.updateUser(
+          { email: profileData.email.trim() },
+          { emailRedirectTo: `${window.location.origin}/auth/callback?next=/parametres?tab=profil` }
+        );
+        if (emailError) {
+          console.error("Error updating email:", emailError);
+          toast(`Impossible de changer l'e-mail : ${emailError.message}`, "error");
+          return;
+        }
+        toast("Un e-mail de confirmation a été envoyé à votre nouvelle adresse. Le changement prend effet une fois le lien confirmé.");
+      }
+
       const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
       const { error } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
           full_name: fullName,
-          email: user.email,
+          // Tant que le nouvel e-mail n'est pas confirmé, on garde l'e-mail
+          // confirmé actuel dans le profil pour ne pas afficher une valeur
+          // qui ne correspond pas encore à un vrai identifiant de connexion.
+          email: confirmedEmail,
           role: profileData.role === "Administrateur" ? "admin" : "agent",
           cooperative_name: orgData.name,
         });
@@ -357,10 +382,12 @@ function ParametresContent() {
         console.error("Error saving profile:", error);
         toast("Une erreur est survenue lors de l'enregistrement.", "error");
       } else {
-        toast("Les modifications ont été enregistrées avec succès !");
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        if (!emailChanged) {
+          toast("Les modifications ont été enregistrées avec succès !");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
       }
     } else {
       toast("Les modifications ont été enregistrées avec succès !");

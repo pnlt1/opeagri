@@ -286,6 +286,7 @@ export default function InscriptionPage() {
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
+                  </div>
                   {/* Password Criteria */}
                   <div className="mt-3 space-y-1">
                     <p className={`text-xs flex items-center gap-1.5 ${formData.password === "" ? 'text-gray-500' : hasMinLength ? 'text-green-600' : 'text-red-500'}`}>
@@ -319,12 +320,12 @@ export default function InscriptionPage() {
               <div className="space-y-3 pt-6 border-t border-gray-100">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" name="cgu" checked={formData.cgu} onChange={handleChange} required className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                  <span className="text-sm text-gray-600">J'accepte les <a href="#" className="text-primary-600 hover:underline">Conditions d'utilisation</a> d'OpeAgri.</span>
+                  <span className="text-sm text-gray-600">{"J'accepte les "}<a href="#" className="text-primary-600 hover:underline">{"Conditions d'utilisation"}</a>{" d'OpeAgri."}</span>
                 </label>
                 
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" name="privacy" checked={formData.privacy} onChange={handleChange} required className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                  <span className="text-sm text-gray-600">J'accepte la <a href="#" className="text-primary-600 hover:underline">Politique de confidentialité</a>.</span>
+                  <span className="text-sm text-gray-600">{"J'accepte la "}<a href="#" className="text-primary-600 hover:underline">Politique de confidentialité</a>.</span>
                 </label>
               </div>
  
@@ -337,7 +338,7 @@ export default function InscriptionPage() {
                     <p>• Les mots de passe de confirmation ne correspondent pas.</p>
                   ) : null}
                   {!formData.cgu || !formData.privacy ? (
-                    <p>• Vous devez cocher et accepter les Conditions d'utilisation et la Politique de confidentialité.</p>
+                    <p>{"• Vous devez cocher et accepter les Conditions d'utilisation et la Politique de confidentialité."}</p>
                   ) : null}
                 </div>
               )}
@@ -355,7 +356,7 @@ export default function InscriptionPage() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      Finaliser l'inscription
+                      {"Finaliser l'inscription"}
                       <CheckCircle2 className="w-5 h-5" />
                     </>
                   )}
