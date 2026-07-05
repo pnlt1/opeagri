@@ -53,6 +53,46 @@ export function AppSidebar({
   const supabase = createClient();
   const [showConfig, setShowConfig] = useState(true);
   const [stepsCompleted, setStepsCompleted] = useState(6);
+  const [userName, setUserName] = useState<string>("Admin OpeAgri");
+  const [userEmail, setUserEmail] = useState<string>("admin@opeagri.com");
+  const [userInitials, setUserInitials] = useState<string>("AD");
+
+  useEffect(() => {
+    const loadSidebarProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || "");
+        
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          if (profile.full_name) {
+            setUserName(profile.full_name);
+            const initials = profile.full_name
+              .trim()
+              .split(" ")
+              .map((part: string) => part[0])
+              .join("")
+              .substring(0, 2)
+              .toUpperCase();
+            setUserInitials(initials || "U");
+          } else {
+            setUserName(user.email ? user.email.split("@")[0] : "Utilisateur");
+            setUserInitials(user.email ? user.email.substring(0, 2).toUpperCase() : "U");
+          }
+        } else {
+          setUserName(user.email ? user.email.split("@")[0] : "Utilisateur");
+          setUserInitials(user.email ? user.email.substring(0, 2).toUpperCase() : "U");
+        }
+      }
+    };
+    loadSidebarProfile();
+  }, []);
 
   useEffect(() => {
     const checkSetup = async () => {
@@ -241,11 +281,11 @@ export function AppSidebar({
               className="flex items-center gap-3 flex-1"
             >
               <div className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center text-white font-bold flex-shrink-0">
-                {role === "admin" ? "AD" : "AG"}
+                {userInitials}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">{role === "admin" ? "Admin OpeAgri" : "Agent Terrain"}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{role === "admin" ? "admin@opeagri.com" : "agent@opeagri.com"}</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{userName}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{userEmail}</span>
               </div>
             </Link>
 
