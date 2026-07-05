@@ -65,6 +65,9 @@ export function Topbar({ onMenuClick, onLogout }: TopbarProps) {
   const [isMac, setIsMac] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [userEmail, setUserEmail] = useState<string>("Chargement...");
+  const [userName, setUserName] = useState<string>("OpeAgri Admin");
+  const [userInitials, setUserInitials] = useState<string>("AD");
+  const [userRole, setUserRole] = useState<string>("Administrateur");
   const router = useRouter();
   const supabase = createClient();
 
@@ -90,8 +93,34 @@ export function Topbar({ onMenuClick, onLogout }: TopbarProps) {
       setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0 || navigator.userAgent.toUpperCase().indexOf('MAC') >= 0);
     }
     
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserEmail(user.email || "Utilisateur");
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        setUserEmail(user.email || "Utilisateur");
+        
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          if (profile.full_name) {
+            setUserName(profile.full_name);
+            const initials = profile.full_name
+              .trim()
+              .split(" ")
+              .map((part: string) => part[0])
+              .join("")
+              .substring(0, 2)
+              .toUpperCase();
+            setUserInitials(initials || "U");
+          }
+          if (profile.role) {
+            setUserRole(profile.role === "admin" ? "Administrateur" : "Agent");
+          }
+        }
+      }
     });
     
     return () => document.removeEventListener("mousedown", handleClick);
@@ -217,26 +246,26 @@ export function Topbar({ onMenuClick, onLogout }: TopbarProps) {
             className="flex items-center gap-3 pl-4 border-l border-gray-200 hover:opacity-80 transition-opacity"
           >
             <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-sm font-semibold text-gray-900">OpeAgri Admin</span>
-              <span className="text-xs text-gray-500">Administrateur</span>
+              <span className="text-sm font-semibold text-gray-900">{userName}</span>
+              <span className="text-xs text-gray-500">{userRole}</span>
             </div>
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 border-2 border-primary/20 flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">AD</span>
+              <span className="text-white font-bold text-sm">{userInitials}</span>
             </div>
           </button>
-
+ 
           {profileOpen && (
             <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 z-50 overflow-hidden">
               {/* En-tête du profil */}
               <div className="p-5 border-b border-gray-100 flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold">AD</span>
+                  <span className="text-white font-bold">{userInitials}</span>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">OpeAgri Admin</p>
+                  <p className="font-semibold text-gray-900 text-sm">{userName}</p>
                   <p className="text-xs text-gray-500">{userEmail}</p>
                   <span className="inline-block mt-1 text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                    Administrateur
+                    {userRole}
                   </span>
                 </div>
               </div>

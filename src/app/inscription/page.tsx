@@ -270,22 +270,20 @@ export default function InscriptionPage() {
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
-                  </div>
-                  
                   {/* Password Criteria */}
                   <div className="mt-3 space-y-1">
-                    <p className={`text-xs flex items-center gap-1.5 ${hasMinLength ? 'text-green-600' : 'text-gray-500'}`}>
-                      {hasMinLength ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />} 8 caractères minimum
+                    <p className={`text-xs flex items-center gap-1.5 ${formData.password === "" ? 'text-gray-500' : hasMinLength ? 'text-green-600' : 'text-red-500'}`}>
+                      {hasMinLength ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className={`w-3.5 h-3.5 ${formData.password !== "" ? 'text-red-500' : 'text-gray-400'}`} />} 8 caractères minimum
                     </p>
-                    <p className={`text-xs flex items-center gap-1.5 ${hasUppercase ? 'text-green-600' : 'text-gray-500'}`}>
-                      {hasUppercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />} Une lettre majuscule
+                    <p className={`text-xs flex items-center gap-1.5 ${formData.password === "" ? 'text-gray-500' : hasUppercase ? 'text-green-600' : 'text-red-500'}`}>
+                      {hasUppercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className={`w-3.5 h-3.5 ${formData.password !== "" ? 'text-red-500' : 'text-gray-400'}`} />} Une lettre majuscule
                     </p>
-                    <p className={`text-xs flex items-center gap-1.5 ${hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
-                      {hasNumber ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />} Un chiffre
+                    <p className={`text-xs flex items-center gap-1.5 ${formData.password === "" ? 'text-gray-500' : hasNumber ? 'text-green-600' : 'text-red-500'}`}>
+                      {hasNumber ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className={`w-3.5 h-3.5 ${formData.password !== "" ? 'text-red-500' : 'text-gray-400'}`} />} Un chiffre
                     </p>
                   </div>
                 </div>
-
+ 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirmation du mot de passe</label>
                   <div className="relative">
@@ -301,7 +299,7 @@ export default function InscriptionPage() {
                   )}
                 </div>
               </div>
-
+ 
               <div className="space-y-3 pt-6 border-t border-gray-100">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" name="cgu" checked={formData.cgu} onChange={handleChange} required className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
@@ -313,14 +311,14 @@ export default function InscriptionPage() {
                   <span className="text-sm text-gray-600">J'accepte la <a href="#" className="text-primary-600 hover:underline">Politique de confidentialité</a>.</span>
                 </label>
               </div>
-
+ 
               <div className="pt-6 flex gap-3">
                 <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white py-3 px-4 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition-all">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !hasMinLength || !hasUppercase || !hasNumber || !passwordsMatch}
+                  disabled={isLoading}
                   className="flex flex-1 justify-center items-center gap-2 rounded-xl border border-transparent bg-primary-600 py-3 px-4 text-base font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                 >
                   {isLoading ? (

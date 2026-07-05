@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/ui/toaster";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
@@ -116,13 +117,54 @@ function ParametresContent() {
 
   // ── Profil ──
   const [profileData, setProfileData] = useState({
-    firstName: "Kofi",
-    lastName: "Ouédraogo",
-    email: "kofi.ouedraogo@wendpanga.bf",
+    firstName: "Utilisateur",
+    lastName: "",
+    email: "",
     role: "Administrateur",
-    phone: "+226 70 12 34 56",
+    phone: "",
   });
   const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        let fName = "";
+        let lName = "";
+        if (profile?.full_name) {
+          const parts = profile.full_name.trim().split(" ");
+          fName = parts[0] || "";
+          lName = parts.slice(1).join(" ") || "";
+        } else if (user.email) {
+          fName = user.email.split("@")[0] || "Utilisateur";
+        }
+
+        setProfileData({
+          firstName: fName,
+          lastName: lName,
+          email: user.email || "",
+          role: profile?.role === "admin" ? "Administrateur" : "Agent",
+          phone: "",
+        });
+
+        if (profile?.cooperative_name) {
+          setOrgData(prev => ({
+            ...prev,
+            name: profile.cooperative_name,
+            email: user.email || prev.email,
+          }));
+        }
+      }
+    };
+    loadProfile();
+  }, []);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
@@ -219,9 +261,28 @@ function ParametresContent() {
     toast(`Sauvegarde du ${backup.date} téléchargée.`);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast("Les modifications ont été enregistrées avec succès !");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Error updating profile:", error);
+        toast("Une erreur est survenue lors de l'enregistrement.", "error");
+      } else {
+        toast("Les modifications ont été enregistrées avec succès !");
+      }
+    } else {
+      toast("Les modifications ont été enregistrées avec succès !");
+    }
   };
 
   // ── Toggle Switch Component ──
