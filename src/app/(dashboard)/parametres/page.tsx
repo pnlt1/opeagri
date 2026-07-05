@@ -345,16 +345,22 @@ function ParametresContent() {
       const fullName = `${profileData.firstName} ${profileData.lastName}`.trim();
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
           full_name: fullName,
-        })
-        .eq("id", user.id);
+          email: user.email,
+          role: profileData.role === "Administrateur" ? "admin" : "agent",
+          cooperative_name: orgData.name,
+        });
 
       if (error) {
-        console.error("Error updating profile:", error);
+        console.error("Error saving profile:", error);
         toast("Une erreur est survenue lors de l'enregistrement.", "error");
       } else {
         toast("Les modifications ont été enregistrées avec succès !");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     } else {
       toast("Les modifications ont été enregistrées avec succès !");
