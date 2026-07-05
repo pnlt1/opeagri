@@ -59,8 +59,10 @@ export function AppSidebar({
 
   useEffect(() => {
     const loadSidebarProfile = async () => {
+      console.log("Sidebar: Fetching active user session...");
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        console.log("Sidebar: User found:", user.email);
         setUserEmail(user.email || "");
         
         // Fetch profile
@@ -71,6 +73,7 @@ export function AppSidebar({
           .single();
 
         if (profile) {
+          console.log("Sidebar: Profile loaded:", profile);
           if (profile.full_name) {
             setUserName(profile.full_name);
             const initials = profile.full_name
@@ -86,6 +89,7 @@ export function AppSidebar({
             setUserInitials(user.email ? user.email.substring(0, 2).toUpperCase() : "U");
           }
         } else {
+          console.log("Sidebar: No profile found in DB for user.");
           setUserName(user.email ? user.email.split("@")[0] : "Utilisateur");
           setUserInitials(user.email ? user.email.substring(0, 2).toUpperCase() : "U");
         }
