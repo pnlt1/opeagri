@@ -86,18 +86,60 @@ export default function IntrantsPage() {
     }
   };
 
+  const [producersList, setProducersList] = useState<any[]>([]);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [newProductData, setNewProductData] = useState({ name: "", type: "Engrais", qty: "0", unit: "Sacs (50kg)" });
+
+  const fetchProducers = async () => {
+    const { data } = await supabase.from('producers').select('*').order('last_name', { ascending: true });
+    if (data) {
+      setProducersList(data);
+    }
+  };
+
   useEffect(() => {
     fetchInventory();
+    fetchProducers();
   }, []);
+
   const [isDistOpen, setIsDistOpen] = useState(false);
   const [isStockOpen, setIsStockOpen] = useState(false);
   
   // Filtres
   const [categoryFilter, setCategoryFilter] = useState("Toutes");
 
-  // Formularires
-  const [distData, setDistData] = useState({ producer: "", product: "Engrais NPK 15-15-15", qty: "", amount: "" });
-  const [stockData, setStockData] = useState({ product: "Engrais NPK 15-15-15", qty: "" });
+  // Formulaires
+  const [distData, setDistData] = useState({ producer: "", product: "", qty: "", amount: "" });
+  const [stockData, setStockData] = useState({ product: "", qty: "" });
+
+  const handleNewProductChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setNewProductData({ ...newProductData, [e.target.name]: e.target.value });
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const qty = parseInt(newProductData.qty) || 0;
+    const status = qty < 50 ? (qty === 0 ? "Rupture" : "Stock faible") : "En stock";
+
+    const { error } = await supabase.from('inventory').insert({
+      product: newProductData.name,
+      type: newProductData.type,
+      quantity: qty,
+      unit: newProductData.unit,
+      status: status,
+      last_restock: qty > 0 ? new Date().toISOString().split('T')[0] : null
+    });
+
+    if (error) {
+      console.error("Error adding product:", error);
+      toast("Une erreur est survenue lors de la création du produit.", "error");
+    } else {
+      toast(`Produit "${newProductData.name}" créé avec succès !`);
+      setIsAddProductOpen(false);
+      setNewProductData({ name: "", type: "Engrais", qty: "0", unit: "Sacs (50kg)" });
+      await fetchInventory();
+    }
+  };
 
   const handleDistChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     setDistData({ ...distData, [e.target.name]: e.target.value });
@@ -216,6 +258,13 @@ export default function IntrantsPage() {
         <div className="flex items-center gap-3">
           <button 
             className="flex items-center gap-2 px-4 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            onClick={() => setIsAddProductOpen(true)}
+          >
+            <Plus size={16} />
+            Nouveau Produit
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 bg-white rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setIsDistOpen(true)}
           >
             Nouvelle Distribution
@@ -224,7 +273,6 @@ export default function IntrantsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors"
             onClick={() => setIsStockOpen(true)}
           >
-            <Plus size={16} />
             Réception Stock
           </button>
         </div>
@@ -450,17 +498,27 @@ export default function IntrantsPage() {
             <label className="text-sm font-medium text-gray-700">Producteur</label>
             <select name="producer" value={distData.producer} onChange={handleDistChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary">
               <option value="">Sélectionner un producteur...</option>
-              <option value="Ali Ouedraogo">Ali Ouedraogo (PRD-2026-001)</option>
-              <option value="Fati Sawadogo">Fati Sawadogo (PRD-2026-002)</option>
-              <option value="Moussa Kaboré">Moussa Kaboré (PRD-2026-003)</option>
+              {producersList.map(prod => {
+                const displayName = `${prod.first_name} ${prod.last_name}`;
+                return (
+                  <option key={prod.id} value={displayName}>{displayName}</option>
+                );
+              })}
+              {producersList.length === 0 && (
+                <option disabled>Aucun producteur enregistré. Ajoutez-en d'abord.</option>
+              )}
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">Produit</label>
             <select name="product" value={distData.product} onChange={handleDistChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+              <option value="">Sélectionner un produit...</option>
               {inventoryList.map(item => (
                 <option key={item.id} value={item.name}>{item.name} ({item.quantity} restants)</option>
               ))}
+              {inventoryList.length === 0 && (
+                <option disabled>Aucun produit dans l'inventaire. Créez-en un d'abord.</option>
+              )}
             </select>
           </div>
           <div className="space-y-1">
@@ -477,16 +535,20 @@ export default function IntrantsPage() {
           </div>
         </form>
       </Modal>
-
+ 
       {/* Modale Réception Stock */}
       <Modal isOpen={isStockOpen} onClose={() => setIsStockOpen(false)} title="Réception de Stock">
         <form className="space-y-4" onSubmit={handleRestock}>
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">Produit</label>
             <select name="product" value={stockData.product} onChange={handleStockChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+              <option value="">Sélectionner un produit...</option>
               {inventoryList.map(item => (
                 <option key={item.id} value={item.name}>{item.name}</option>
               ))}
+              {inventoryList.length === 0 && (
+                <option disabled>Aucun produit enregistré. Créez-en un d'abord.</option>
+              )}
             </select>
           </div>
           <div className="space-y-1">
@@ -496,6 +558,37 @@ export default function IntrantsPage() {
           <div className="pt-4 flex justify-end gap-3">
             <button type="button" onClick={() => setIsStockOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
             <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">Mettre à jour</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modale Nouveau Produit */}
+      <Modal isOpen={isAddProductOpen} onClose={() => setIsAddProductOpen(false)} title="Nouveau Produit de l'Inventaire">
+        <form className="space-y-4" onSubmit={handleAddProduct}>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Nom du produit</label>
+            <input type="text" name="name" value={newProductData.name} onChange={handleNewProductChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Ex: Engrais NPK 15-15-15" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Catégorie</label>
+            <select name="type" value={newProductData.type} onChange={handleNewProductChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-primary focus:border-primary">
+              <option value="Engrais">Engrais</option>
+              <option value="Semences">Semences</option>
+              <option value="Pesticides">Pesticides</option>
+              <option value="Matériel">Matériel</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Quantité initiale</label>
+            <input type="number" name="qty" value={newProductData.qty} onChange={handleNewProductChange} required min="0" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Ex: 100" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Unité de mesure</label>
+            <input type="text" name="unit" value={newProductData.unit} onChange={handleNewProductChange} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Ex: Sacs (50kg), Litres" />
+          </div>
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={() => setIsAddProductOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Annuler</button>
+            <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">Créer le produit</button>
           </div>
         </form>
       </Modal>
