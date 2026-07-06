@@ -117,8 +117,11 @@ export default function InscriptionPage() {
           console.error("Error creating public profile:", profileError);
         }
       }
-      toast("Compte créé avec succès !");
-      router.push("/dashboard");
+      toast("Compte créé avec succès ! Redirection vers la page de connexion...");
+      await supabase.auth.signOut();
+      setTimeout(() => {
+        router.push("/connexion");
+      }, 2000);
     }
   };
 

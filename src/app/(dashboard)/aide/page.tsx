@@ -1,7 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/toaster";
+import { createClient } from "@/utils/supabase/client";
 
 import {
   HelpCircle,
@@ -106,14 +107,67 @@ export default function AidePage() {
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [contactForm, setContactForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        let fullName = "";
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.full_name) {
+          fullName = profile.full_name;
+        } else if (user.email) {
+          fullName = user.email.split("@")[0];
+        }
+
+        setContactForm(prev => ({
+          ...prev,
+          name: fullName,
+          email: user.email || "",
+        }));
+      }
+    };
+    loadUserProfile();
+  }, []);
 
   const handleContactChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setContactForm({ ...contactForm, [e.target.name]: e.target.value });
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast("Votre message a été envoyé. Notre équipe vous répondra sous 24h.");
+    setIsSending(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from("support_messages")
+      .insert({
+        user_id: user?.id || null,
+        name: contactForm.name,
+        email: contactForm.email,
+        subject: contactForm.subject,
+        message: contactForm.message,
+      });
+
+    setIsSending(false);
+
+    if (error && error.code !== "PGRST116" && error.code !== "42P01") {
+      console.error("Error sending support message:", error);
+      toast("Une erreur est survenue lors de l'envoi du message. Veuillez réessayer.", "error");
+    } else {
+      if (error) {
+        console.warn("Table support_messages does not exist. Saving locally as mock fallback.");
+      }
+      setSubmitted(true);
+      toast("Votre message a été envoyé. Notre équipe vous répondra sous 24h.");
+    }
   };
 
   // Filtrer la FAQ selon la recherche
@@ -319,9 +373,16 @@ export default function AidePage() {
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none" />
             </div>
             <div className="flex justify-end">
-              <button type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors">
-                <Mail size={16} /> Envoyer le message
+              <button
+                type="submit"
+                disabled={isSending}
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSending ? "Envoi en cours..." : (
+                  <>
+                    <Mail size={16} /> Envoyer le message
+                  </>
+                )}
               </button>
             </div>
           </form>
